@@ -41,12 +41,12 @@ class DynaMPDConfig:
 
         cfg = ConfigParser.SafeConfigParser(default_values)
         cfg.read(os.path.expanduser(self.cfg_file))
-        setattr(self, 'host', cfg.get('DEFAULT', 'host'))
-        setattr(self, 'password', cfg.get('DEFAULT', 'password'))
-        setattr(self, 'port', cfg.getint('DEFAULT', 'port'))
-        setattr(self, 'verbose', cfg.getboolean('DEFAULT', 'verbose'))
-        setattr(self, 'msongs', cfg.getint('DEFAULT', 'max_songs'))
-        setattr(self, 'wait', cfg.getint('DEFAULT', 'wait'))
+        self.host = cfg.get('DEFAULT', 'host')
+        self.password = cfg.get('DEFAULT', 'password')
+        self.port = cfg.getint('DEFAULT', 'port')
+        self.verbose = cfg.getboolean('DEFAULT', 'verbose')
+        self.msongs = cfg.getint('DEFAULT', 'max_songs')
+        self.wait = cfg.getint('DEFAULT', 'wait')
 
     def load_from_input(self):
         parser = optparse.OptionParser()
