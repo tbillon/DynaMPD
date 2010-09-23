@@ -17,10 +17,48 @@
 #
 
 import mpd, time, urllib, xml.dom.minidom, re, random
+import os, ConfigParser, optparse
 from xml.parsers.expat import ExpatError as ParseError
 
 __author__ = 'ubitux and Amak'
 __version__ = '1.0.0'
+
+
+class DynaMPDConfig:
+
+    def __init__(self, cfile = '~/.config/dynampd.conf'):
+        self.cfg_file = cfile
+        self.load_from_file()
+        self.load_from_input()
+
+    def load_from_file(self):
+        default_values = {'host'      : 'localhost',
+                          'max_songs' : '3',
+                          'port'      : '6600',
+                          'password'  : None,
+                          'verbose'   : 'no',
+                          'wait'      : '20'}
+
+        cfg = ConfigParser.SafeConfigParser(default_values)
+        cfg.read(os.path.expanduser(self.cfg_file))
+        setattr(self, 'host', cfg.get('DEFAULT', 'host'))
+        setattr(self, 'password', cfg.get('DEFAULT', 'password'))
+        setattr(self, 'port', cfg.getint('DEFAULT', 'port'))
+        setattr(self, 'verbose', cfg.getboolean('DEFAULT', 'verbose'))
+        setattr(self, 'msongs', cfg.getint('DEFAULT', 'max_songs'))
+        setattr(self, 'wait', cfg.getint('DEFAULT', 'wait'))
+
+    def load_from_input(self):
+        parser = optparse.OptionParser()
+        parser.add_option('-a', '--host', dest='host', help='MPD host', default=self.host)
+        parser.add_option('-n', '--password', dest='password', help='MPD password', default=self.password)
+        parser.add_option('-p', '--port', dest='port', type='int', help='MPD port', default=self.port)
+        parser.add_option('-q', '--quiet', dest='verbose', action="store_false", help='Quiet mode', default=(not self.verbose))
+        parser.add_option('-m', '--max-songs', dest='max_songs', type='int', help='Maximum songs to append each time', default=self.msongs)
+        parser.add_option('-w', '--wait', dest='wait', type='int', help='Percent of current song length to wait before requesting new songs', default=self.wait)
+        (opts, _) = parser.parse_args()
+        for k in vars(opts):
+            setattr(self, k, vars(opts)[k])
 
 class DynaMPD:
 
@@ -129,50 +167,14 @@ class DynaMPD:
 
 class Core(mpd.MPDClient):
 
-    _config_file = '~/.config/dynampd.conf'
-    cfg = ()
-
     def __init__(self):
-
-        def getopts_from_file():
-            import os, ConfigParser
-
-            c = type('',(),{})
-            config = ConfigParser.SafeConfigParser({'host'      : 'localhost',
-                                                    'max_songs' : '3',
-                                                    'port'      : '6600',
-                                                    'password'  : None,
-                                                    'verbose'   : 'no',
-                                                    'wait'      : '20'})
-            config.read(os.path.expanduser(self._config_file))
-            c.host      = config.get('DEFAULT', 'host')
-            c.password  = config.get('DEFAULT', 'password')
-            c.port      = config.getint('DEFAULT', 'port')
-            c.verbose   = config.getboolean('DEFAULT', 'verbose')
-            c.msongs    = config.getint('DEFAULT', 'max_songs')
-            c.wait      = config.getint('DEFAULT', 'wait')
-            return c
-
-        def getopts(c):
-            import optparse
-
-            parser = optparse.OptionParser()
-            parser.add_option('-a', '--host', dest='host', help='MPD host', default=c.host)
-            parser.add_option('-n', '--password', dest='password', help='MPD password', default=c.password)
-            parser.add_option('-p', '--port', dest='port', type='int', help='MPD port', default=c.port)
-            parser.add_option('-q', '--quiet', dest='verbose', action="store_false", help='Quiet mode', default=(not c.verbose))
-            parser.add_option('-m', '--max-songs', dest='max_songs', type='int', help='Maximum songs to append each time', default=c.msong)
-            parser.add_option('-w', '--wait', dest='wait', type='int', help='Percent of current song length to wait before requesting new songs', default=c.wait)
-            (opts, _) = parser.parse_args()
-            return opts
+        self.cfg = DynaMPDConfig()
 
         mpd.MPDClient.__init__(self)
-        cfg = getopts_from_file()
-        cfg = getopts(cfg)
 
-        self.connect(cfg.host, cfg.port)
-        if cfg.password:
-            self.password(cfg.password)
+        self.connect(self.cfg.host, self.cfg.port)
+        if self.cfg.password:
+            self.password(self.cfg.password)
 
     def run(self):
 
@@ -198,7 +200,7 @@ class Core(mpd.MPDClient):
                             print 'Error: unable to parse Last.FM DOM. retry in 5 seconds'
                 time.sleep(5)
         except KeyboardInterrupt:
-            if cfg.verbose:
+            if self.cfg.verbose:
                 print 'Dynampd %s is now quitting...' % (__version__ )
 
 if __name__ == '__main__':
