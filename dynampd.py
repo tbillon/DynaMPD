@@ -36,7 +36,7 @@ class DynaMPDConfig:
                           'max_songs' : '3',
                           'port'      : '6600',
                           'password'  : None,
-                          'verbose'   : 'no',
+                          'quiet'     : 'no',
                           'wait'      : '20'}
 
         cfg = ConfigParser.SafeConfigParser(default_values)
@@ -44,7 +44,7 @@ class DynaMPDConfig:
         self.host = cfg.get('DEFAULT', 'host')
         self.password = cfg.get('DEFAULT', 'password')
         self.port = cfg.getint('DEFAULT', 'port')
-        self.verbose = cfg.getboolean('DEFAULT', 'verbose')
+        self.quiet = cfg.getboolean('DEFAULT', 'quiet')
         self.msongs = cfg.getint('DEFAULT', 'max_songs')
         self.wait = cfg.getint('DEFAULT', 'wait')
 
@@ -53,7 +53,7 @@ class DynaMPDConfig:
         parser.add_option('-a', '--host', dest='host', help='MPD host', default=self.host)
         parser.add_option('-n', '--password', dest='password', help='MPD password', default=self.password)
         parser.add_option('-p', '--port', dest='port', type='int', help='MPD port', default=self.port)
-        parser.add_option('-q', '--quiet', dest='verbose', action="store_false", help='Quiet mode', default=(not self.verbose))
+        parser.add_option('-q', '--quiet', dest='quiet', action="store_false", help='Quiet mode', default=self.quiet)
         parser.add_option('-m', '--max-songs', dest='max_songs', type='int', help='Maximum songs to append each time', default=self.msongs)
         parser.add_option('-w', '--wait', dest='wait', type='int', help='Percent of current song length to wait before requesting new songs', default=self.wait)
         (opts, _) = parser.parse_args()
@@ -162,7 +162,7 @@ class DynaMPD:
         return xml.dom.minidom.parse(urllib.urlopen(url))
 
     def _log(self, msg):
-        if self.mpd_client.cfg.verbose:
+        if not self.mpd_client.cfg.quiet:
             print msg
 
 class Core(mpd.MPDClient):
@@ -200,7 +200,7 @@ class Core(mpd.MPDClient):
                             print 'Error: unable to parse Last.FM DOM. retry in 5 seconds'
                 time.sleep(5)
         except KeyboardInterrupt:
-            if self.cfg.verbose:
+            if not self.cfg.quiet:
                 print 'Dynampd %s is now quitting...' % (__version__ )
 
 if __name__ == '__main__':
